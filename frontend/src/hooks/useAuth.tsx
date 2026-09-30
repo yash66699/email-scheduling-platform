@@ -37,7 +37,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await api.post('/api/auth/demo');
       setUser(res.data.user);
-      window.location.href = '/dashboard';
     } finally {
       setLoading(false);
     }
@@ -53,7 +52,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await api.post('/api/auth/logout');
       setUser(null);
-      window.location.href = '/login';
     } finally {
       setLoading(false);
     }
