@@ -6,7 +6,9 @@ import { initializeElasticsearchIndex } from './config/elasticsearch';
 import { EmailStatus } from '@prisma/client';
 import { logger } from './utils/logger';
 
-async function performStartupReconciliation(): Promise<void> {
+import { emailQueue, addBulkEmailJobsToQueue, EmailJobPayload } from './queue/emailQueue';
+
+export async function performStartupReconciliation(): Promise<void> {
   try {
     logger.info('Performing startup database & worker reconciliation check...');
     const now = new Date();
@@ -41,9 +43,76 @@ async function performStartupReconciliation(): Promise<void> {
       logger.info(
         `Reconciliation complete: Reset ${staleProcessingEmails.count} stale PROCESSING emails and ${pastDueEmails.count} past-due SCHEDULED emails to QUEUED.`
       );
-    } else {
-      logger.info('Reconciliation complete: All email queue states synced.');
     }
+
+    // 3. Find all emails that should be in the queue:
+    // This includes QUEUED, SCHEDULED, RATE_LIMITED, and PROCESSING.
+    const pendingEmails = await prisma.email.findMany({
+      where: {
+        status: { in: [EmailStatus.QUEUED, EmailStatus.SCHEDULED, EmailStatus.RATE_LIMITED, EmailStatus.PROCESSING] }
+      }
+    });
+
+    if (pendingEmails.length === 0) {
+      logger.info('Reconciliation complete: All email queue states synced. No pending emails.');
+      return;
+    }
+
+    let jobsAlreadyPresent = 0;
+    let jobsReEnqueued = 0;
+    let jobsSkipped = 0;
+    const jobsToEnqueue: { payload: EmailJobPayload; delayMs: number }[] = [];
+
+    const chunkSize = 500;
+    for (let i = 0; i < pendingEmails.length; i += chunkSize) {
+      const chunk = pendingEmails.slice(i, i + chunkSize);
+      
+      const jobChecks = await Promise.all(
+        chunk.map(async (email) => {
+          const job = await emailQueue.getJob(email.id);
+          if (job) {
+             return { email, exists: true };
+          }
+          return { email, exists: false };
+        })
+      );
+
+      for (const { email, exists } of jobChecks) {
+        if (exists) {
+          jobsAlreadyPresent++;
+        } else {
+          // Reconstruct payload
+          const payload: EmailJobPayload = {
+            emailId: email.id,
+            userId: email.userId,
+            senderId: email.senderId,
+            recipient: email.recipient,
+            subject: email.subject,
+            body: email.body,
+            scheduledAt: email.scheduledAt.toISOString(),
+            idempotencyKey: email.idempotencyKey,
+          };
+
+          // Calculate delay
+          let delayMs = 0;
+          if (email.scheduledAt.getTime() > Date.now()) {
+            delayMs = email.scheduledAt.getTime() - Date.now();
+          }
+
+          jobsToEnqueue.push({ payload, delayMs });
+          jobsReEnqueued++;
+        }
+      }
+    }
+
+    if (jobsToEnqueue.length > 0) {
+      await addBulkEmailJobsToQueue(jobsToEnqueue);
+    }
+
+    logger.info(
+      `Queue sync: ${jobsAlreadyPresent} jobs already present, ${jobsReEnqueued} jobs re-enqueued, ${jobsSkipped} jobs skipped.`
+    );
+
   } catch (error) {
     logger.error('Startup reconciliation error (non-fatal):', error);
   }
