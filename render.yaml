@@ -1,33 +1,63 @@
+databases:
+  - name: reachinbox-db
+    plan: starter
+    databaseName: reachinbox_email_scheduler
+    user: reachinbox_user
+
 services:
   # ---------------------------------------------------------------------------
-  # SERVICE 1: Express.js Web API Service
+  # 1. Redis Key-Value Store
+  # ---------------------------------------------------------------------------
+  - type: keyvalue
+    name: reachinbox-redis
+    ipAllowList: []
+    persistenceMode: journal-snapshot
+
+  # ---------------------------------------------------------------------------
+  # 2. Private Elasticsearch
+  # ---------------------------------------------------------------------------
+  - type: pserv
+    name: reachinbox-es
+    runtime: image
+    image:
+      url: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    disk:
+      name: es-data
+      mountPath: /usr/share/elasticsearch/data
+      sizeGB: 10
+    envVars:
+      - key: discovery.type
+        value: single-node
+      - key: xpack.security.enabled
+        value: false
+      - key: ES_JAVA_OPTS
+        value: -Xms512m -Xmx512m
+
+  # ---------------------------------------------------------------------------
+  # 3. Backend Express API
   # ---------------------------------------------------------------------------
   - type: web
-    name: reachinbox-backend-api-v1
+    name: reachinbox-backend-api
     runtime: node
-    region: oregon
-    plan: free
     rootDir: backend
-    buildCommand: npm install --include=dev && npm run build
+    buildCommand: npm ci --include=dev && npm run build
+    preDeployCommand: npx prisma db push
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 5000
-      - key: WORKER_CONCURRENCY
-        value: 10
-      - key: DEFAULT_MIN_DELAY_MS
-        value: 2000
-      - key: DEFAULT_HOURLY_LIMIT
-        value: 100
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: reachinbox-db
+          property: connectionString
       - key: REDIS_URL
-        sync: false
+        fromService:
+          type: keyvalue
+          name: reachinbox-redis
+          property: connectionString
       - key: ELASTICSEARCH_NODE
-        sync: false
+        value: http://reachinbox-es:9200
       - key: JWT_SECRET
         generateValue: true
       - key: ENCRYPTION_SECRET
@@ -46,36 +76,69 @@ services:
         sync: false
       - key: SLACK_REDIRECT_URI
         sync: false
+      - key: REAL_SMTP_HOST
+        sync: false
+      - key: REAL_SMTP_PORT
+        sync: false
+      - key: REAL_SMTP_USER
+        sync: false
+      - key: REAL_SMTP_PASS
+        sync: false
 
   # ---------------------------------------------------------------------------
-  # SERVICE 2: BullMQ Background Worker Service
+  # 4. BullMQ Worker
   # ---------------------------------------------------------------------------
   - type: worker
     name: reachinbox-bullmq-worker
     runtime: node
-    region: oregon
-    plan: starter # Render background worker service
     rootDir: backend
-    buildCommand: npm install --include=dev && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm run worker
     envVars:
       - key: NODE_ENV
         value: production
-      - key: WORKER_CONCURRENCY
-        value: 10
-      - key: DEFAULT_MIN_DELAY_MS
-        value: 2000
-      - key: DEFAULT_HOURLY_LIMIT
-        value: 100
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: reachinbox-db
+          property: connectionString
       - key: REDIS_URL
-        sync: false
+        fromService:
+          type: keyvalue
+          name: reachinbox-redis
+          property: connectionString
       - key: ELASTICSEARCH_NODE
-        sync: false
+        value: http://reachinbox-es:9200
       - key: ENCRYPTION_SECRET
+        fromService:
+          type: web
+          name: reachinbox-backend-api
+          property: envVar
+          envVarKey: ENCRYPTION_SECRET
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: SLACK_CLIENT_ID
         sync: false
       - key: SLACK_CLIENT_SECRET
         sync: false
+
+  # ---------------------------------------------------------------------------
+  # 5. Frontend Static Site
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: reachinbox-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /admin/*
+        destination: https://reachinbox-backend-api.onrender.com/admin/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
