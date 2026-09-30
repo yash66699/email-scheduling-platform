@@ -17,13 +17,13 @@ const queryClient = new QueryClient({
   },
 });
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#3B7597] flex items-center justify-center text-slate-400">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+      <div className="min-h-screen bg-[#0C0E12] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 text-[#6366F1] animate-spin" />
       </div>
     );
   }
@@ -35,7 +35,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
-export const AppContent: React.FC = () => {
+const AppContent = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

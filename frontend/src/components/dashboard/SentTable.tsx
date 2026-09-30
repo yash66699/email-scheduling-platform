@@ -13,7 +13,7 @@ export const SentTable: React.FC<SentTableProps> = ({ emails, loading }) => {
     return (
       <div className="p-6 space-y-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-14 bg-slate-900/60 rounded-xl animate-pulse border border-slate-800" />
+          <div key={i} className="h-16 bg-[#1A1D25] rounded-lg animate-pulse border border-[#23262F]" />
         ))}
       </div>
     );
@@ -21,13 +21,13 @@ export const SentTable: React.FC<SentTableProps> = ({ emails, loading }) => {
 
   if (emails.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center">
-        <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mb-3">
-          <Send className="w-6 h-6" />
+      <div className="flex flex-col items-center justify-center p-16 text-center">
+        <div className="w-14 h-14 rounded-full bg-[#1A1D25] border border-[#23262F] flex items-center justify-center text-[#8B8D97] mb-4">
+          <Send className="w-7 h-7" />
         </div>
-        <h3 className="text-sm font-semibold text-slate-300">No sent emails recorded yet</h3>
-        <p className="text-xs text-slate-500 max-w-sm mt-1">
-          Once your scheduled jobs execute through the BullMQ worker, sent records and SMTP preview links will appear here.
+        <h3 className="text-base font-medium text-[#F1F1F3]">No sent emails yet</h3>
+        <p className="text-sm text-[#8B8D97] max-w-sm mt-2">
+          Once your scheduled jobs execute through the worker, sent records and preview links will appear here.
         </p>
       </div>
     );
@@ -35,17 +35,17 @@ export const SentTable: React.FC<SentTableProps> = ({ emails, loading }) => {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-xs text-slate-300">
-        <thead className="bg-[#151D2A] text-slate-400 font-medium uppercase tracking-wider border-b border-[#232E42]">
+      <table className="w-full text-left text-sm text-[#F1F1F3]">
+        <thead className="bg-[#14161C] text-[#5A5C66] text-xs font-semibold uppercase tracking-wider border-b border-[#23262F]">
           <tr>
-            <th className="px-6 py-3.5">Recipient</th>
-            <th className="px-6 py-3.5">Subject</th>
-            <th className="px-6 py-3.5">Sent Timestamp</th>
-            <th className="px-6 py-3.5">Status</th>
-            <th className="px-6 py-3.5 text-right">Ethereal Preview</th>
+            <th className="px-6 py-4 whitespace-nowrap">Recipient</th>
+            <th className="px-6 py-4">Subject</th>
+            <th className="px-6 py-4 whitespace-nowrap">Sent Timestamp</th>
+            <th className="px-6 py-4 whitespace-nowrap">Status</th>
+            <th className="px-6 py-4 whitespace-nowrap text-right">Ethereal Preview</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#232E42]/60">
+        <tbody className="divide-y divide-[#23262F]">
           {emails.map((email) => {
             const formattedSentDate = email.sentAt
               ? new Date(email.sentAt).toLocaleString('en-US', {
@@ -58,43 +58,43 @@ export const SentTable: React.FC<SentTableProps> = ({ emails, loading }) => {
               : 'N/A';
 
             return (
-              <tr key={email.id} className="hover:bg-slate-800/40 transition-colors group">
-                <td className="px-6 py-4 font-medium text-slate-200">
-                  <span className="font-mono text-slate-300">{email.recipient}</span>
+              <tr key={email.id} className="hover:bg-[#1A1D25] transition-colors group">
+                <td className="px-6 py-4 text-[#F1F1F3] whitespace-nowrap">
+                  <span className="font-mono text-sm">{email.recipient}</span>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="max-w-xs truncate text-slate-200 font-medium" title={email.subject}>
+                  <div className="max-w-md truncate text-[#F1F1F3] font-medium" title={email.subject}>
                     {email.subject}
                   </div>
                   {email.failureReason && (
-                    <div className="flex items-center gap-1 text-[11px] text-rose-400 mt-0.5">
-                      <AlertCircle className="w-3 h-3 shrink-0" />
+                    <div className="flex items-center gap-1.5 text-xs text-[#EF4444] mt-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate" title={email.failureReason}>
                         {email.failureReason}
                       </span>
                     </div>
                   )}
                 </td>
-                <td className="px-6 py-4 text-slate-400 font-mono text-[11px]">
-                  {formattedSentDate}
+                <td className="px-6 py-4 text-[#8B8D97] whitespace-nowrap">
+                  <span className="text-sm">{formattedSentDate}</span>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 whitespace-nowrap">
                   <StatusBadge status={email.status} />
                 </td>
-                <td className="px-6 py-4 text-right">
+                <td className="px-6 py-4 text-right whitespace-nowrap">
                   {email.status === 'SENT' ? (
                     <a
                       href={email.providerMessageId && email.providerMessageId.startsWith('http') ? email.providerMessageId : 'https://ethereal.email/messages'}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-[#457B9D] hover:text-[#F4D35E] font-medium hover:underline bg-[#457B9D]/10 px-2.5 py-1 rounded border border-[#457B9D]/30 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-[#8B8D97] hover:text-[#6366F1] transition-colors"
                       title="Open Ethereal Mail Inbox Preview"
                     >
-                      <span>Ethereal Preview</span>
-                      <ExternalLink className="w-3.5 h-3.5 text-[#457B9D]" />
+                      <span>Preview</span>
+                      <ExternalLink className="w-4 h-4" />
                     </a>
                   ) : (
-                    <span className="text-slate-600 text-xs">—</span>
+                    <span className="text-[#5A5C66] text-sm">—</span>
                   )}
                 </td>
               </tr>

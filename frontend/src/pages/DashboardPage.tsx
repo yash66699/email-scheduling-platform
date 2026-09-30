@@ -98,100 +98,123 @@ export const DashboardPage: React.FC = () => {
 
   const activeSender = user?.senders?.[0];
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const formattedDate = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date());
+
   return (
-    <div className="min-h-screen bg-[#3B7597] flex flex-col font-sans">
-      {/* Navigation Header */}
+    <div className="min-h-screen bg-[#0C0E12] flex flex-col font-sans text-[#F1F1F3]">
       <Header onOpenCompose={() => setIsComposeOpen(true)} />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Overview Banner & Slack Alert Status */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8">
+        
+        {/* Contextual Greeting Area */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {getGreeting()}, {user?.name?.split(' ')[0] || 'there'}
+            </h1>
+            <p className="text-[#8B8D97] mt-1 text-sm">{formattedDate}</p>
+          </div>
+          <Button 
+            onClick={() => setIsComposeOpen(true)}
+            className="bg-[#6366F1] hover:bg-[#818CF8] text-white border-none shadow-sm flex items-center gap-2 px-4 py-2"
+          >
+            <Plus className="w-4 h-4" />
+            Compose Email
+          </Button>
+        </div>
+
+        {/* Slack Disconnected Banner */}
         {!user?.slackConnected && (
-          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2.5 text-amber-300">
-              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
-              <div>
-                <strong className="font-semibold text-white">Slack Notifications Disconnected:</strong> Connect your Slack workspace to receive real-time alerts when hourly rate limits are hit.
+          <div className="px-4 py-3 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-[#F59E0B] shrink-0" />
+              <div className="text-[#F1F1F3]">
+                <strong className="font-medium">Slack Notifications Disconnected</strong>
+                <span className="text-[#8B8D97] ml-2 hidden sm:inline">Connect your workspace to receive real-time alerts when hourly rate limits are hit.</span>
               </div>
             </div>
             <a
               href="/api/slack/connect"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 font-medium shrink-0 transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#F59E0B]/20 hover:bg-[#F59E0B]/30 text-[#F59E0B] border border-[#F59E0B]/30 font-medium shrink-0 transition-colors text-xs"
             >
               <Hash className="w-3.5 h-3.5" />
-              <span>Connect Slack OAuth</span>
+              <span>Connect Slack</span>
             </a>
           </div>
         )}
 
-        {/* Overview Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-5 rounded-2xl bg-[#151D2A] border border-[#232E42] space-y-2">
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-xs font-medium">Scheduled Queue</span>
-              <Clock className="w-4 h-4 text-[#F4D35E]" />
+        {/* Metrics Row (Single horizontal strip) */}
+        <div className="bg-[#14161C] border border-[#23262F] rounded-xl p-6">
+          <div className="flex flex-wrap md:flex-nowrap divide-y md:divide-y-0 md:divide-x divide-[#23262F] -mx-6">
+            <div className="w-full md:w-1/4 px-6 py-4 md:py-0 flex flex-col justify-center">
+              <div className="flex items-center gap-2 text-[#8B8D97] mb-2">
+                <Clock className="w-4 h-4 text-[#F59E0B]" />
+                <span className="text-xs uppercase tracking-wider font-semibold">Scheduled Queue</span>
+              </div>
+              <div className="text-3xl font-light text-[#F1F1F3]">
+                {scheduledData?.total || 0}
+              </div>
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-white font-mono">{scheduledData?.total || 0}</span>
-              <span className="text-[11px] text-slate-500">delayed jobs</span>
+            <div className="w-full md:w-1/4 px-6 py-4 md:py-0 flex flex-col justify-center">
+              <div className="flex items-center gap-2 text-[#8B8D97] mb-2">
+                <Send className="w-4 h-4 text-[#22C55E]" />
+                <span className="text-xs uppercase tracking-wider font-semibold">Total Delivered</span>
+              </div>
+              <div className="text-3xl font-light text-[#F1F1F3]">
+                {sentData?.total || 0}
+              </div>
             </div>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-[#151D2A] border border-[#232E42] space-y-2">
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-xs font-medium">Total Sent</span>
-              <Send className="w-4 h-4 text-[#66BB6A]" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-white font-mono">{sentData?.total || 0}</span>
-              <span className="text-[11px] text-slate-500">delivered emails</span>
-            </div>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-[#151D2A] border border-[#232E42] space-y-2">
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-xs font-medium">Hourly Sender Limit</span>
-              <Zap className="w-4 h-4 text-[#8B1E2D]" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-white font-mono">
+            <div className="w-full md:w-1/4 px-6 py-4 md:py-0 flex flex-col justify-center">
+              <div className="flex items-center gap-2 text-[#8B8D97] mb-2">
+                <Zap className="w-4 h-4 text-[#EF4444]" />
+                <span className="text-xs uppercase tracking-wider font-semibold">Hourly Limit</span>
+              </div>
+              <div className="text-3xl font-light text-[#F1F1F3]">
                 {activeSender?.maxEmailsPerHour || 100}
-              </span>
-              <span className="text-[11px] text-slate-500">emails / hour</span>
+              </div>
             </div>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-[#151D2A] border border-[#232E42] space-y-2">
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-xs font-medium">Worker Concurrency</span>
-              <Activity className="w-4 h-4 text-[#457B9D] animate-pulse" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-white font-mono">10</span>
-              <span className="text-[11px] text-slate-500">parallel threads</span>
+            <div className="w-full md:w-1/4 px-6 py-4 md:py-0 flex flex-col justify-center">
+              <div className="flex items-center gap-2 text-[#8B8D97] mb-2">
+                <Activity className="w-4 h-4 text-[#6366F1]" />
+                <span className="text-xs uppercase tracking-wider font-semibold">Worker Concurrency</span>
+              </div>
+              <div className="text-3xl font-light text-[#F1F1F3]">
+                10
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Dashboard Main Table Section */}
-        <div className="bg-[#151D2A] border border-[#232E42] rounded-2xl shadow-xl overflow-hidden">
-          {/* Controls Bar: Tabs & Elasticsearch Search */}
-          <div className="p-4 border-b border-[#232E42] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-[#0B0F17]/40">
+        {/* Main Data Area */}
+        <div className="bg-[#14161C] border border-[#23262F] rounded-xl shadow-sm overflow-hidden">
+          {/* Tab Bar & Search */}
+          <div className="border-b border-[#23262F] flex flex-col md:flex-row items-center justify-between px-6 bg-[#14161C]">
             {/* Tabs */}
-            <div className="flex items-center gap-2 bg-[#0B0F17] p-1 rounded-xl border border-[#232E42]">
+            <div className="flex items-center space-x-6 w-full md:w-auto">
               <button
                 onClick={() => {
                   setActiveTab('scheduled');
                   setPage(1);
                 }}
-                className={`px-4 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${activeTab === 'scheduled' && !isSearching
-                    ? 'bg-[#8B1E2D] text-white shadow-md shadow-[#8B1E2D]/20'
-                    : 'text-slate-400 hover:text-slate-200'
-                  }`}
+                className={`py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                  activeTab === 'scheduled' && !isSearching
+                    ? 'border-[#6366F1] text-[#F1F1F3]'
+                    : 'border-transparent text-[#8B8D97] hover:text-[#F1F1F3] hover:border-[#23262F]'
+                }`}
               >
-                <Clock className="w-3.5 h-3.5" />
-                <span>Scheduled Emails</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/10">
+                Scheduled
+                <span className="ml-1.5 px-2 py-0.5 rounded-full text-xs bg-[#1A1D25] text-[#8B8D97]">
                   {scheduledData?.total || 0}
                 </span>
               </button>
@@ -201,29 +224,31 @@ export const DashboardPage: React.FC = () => {
                   setActiveTab('sent');
                   setPage(1);
                 }}
-                className={`px-4 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${activeTab === 'sent' && !isSearching
-                    ? 'bg-[#8B1E2D] text-white shadow-md shadow-[#8B1E2D]/20'
-                    : 'text-slate-400 hover:text-slate-200'
-                  }`}
+                className={`py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                  activeTab === 'sent' && !isSearching
+                    ? 'border-[#6366F1] text-[#F1F1F3]'
+                    : 'border-transparent text-[#8B8D97] hover:text-[#F1F1F3] hover:border-[#23262F]'
+                }`}
               >
-                <Send className="w-3.5 h-3.5" />
-                <span>Sent & History</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/10">
+                Sent
+                <span className="ml-1.5 px-2 py-0.5 rounded-full text-xs bg-[#1A1D25] text-[#8B8D97]">
                   {sentData?.total || 0}
                 </span>
               </button>
             </div>
 
-            {/* Elasticsearch Search Input */}
-            <SearchBar
-              query={searchQuery}
-              onQueryChange={(q) => {
-                setSearchQuery(q);
-                setPage(1);
-              }}
-              searchSource={searchData?.source}
-              isSearching={loadingSearch}
-            />
+            {/* Search */}
+            <div className="w-full md:w-auto py-3 md:py-0">
+              <SearchBar
+                query={searchQuery}
+                onQueryChange={(q) => {
+                  setSearchQuery(q);
+                  setPage(1);
+                }}
+                searchSource={searchData?.source}
+                isSearching={loadingSearch}
+              />
+            </div>
           </div>
 
           {/* Table Render */}
@@ -239,11 +264,11 @@ export const DashboardPage: React.FC = () => {
             <SentTable emails={sentData?.items || []} loading={loadingSent} />
           )}
 
-          {/* Table Footer Pagination */}
-          <div className="px-6 py-3.5 border-t border-[#232E42] flex items-center justify-between text-xs text-slate-400 bg-[#0B0F17]/30">
+          {/* Pagination Footer */}
+          <div className="px-6 py-4 border-t border-[#23262F] flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-[#8B8D97] bg-[#14161C]">
             <span>
-              Showing Page <strong className="text-slate-200">{page}</strong> of{' '}
-              <strong className="text-slate-200">{totalPages}</strong> ({totalCount} total records)
+              Showing <strong className="text-[#F1F1F3]">{page}</strong> of{' '}
+              <strong className="text-[#F1F1F3]">{totalPages}</strong> pages ({totalCount} items)
             </span>
 
             <div className="flex items-center gap-2">
@@ -252,23 +277,24 @@ export const DashboardPage: React.FC = () => {
                 size="sm"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="border-[#23262F] text-[#F1F1F3] hover:bg-[#1A1D25] bg-transparent disabled:opacity-50"
               >
-                <ChevronLeft className="w-3.5 h-3.5" /> Previous
+                <ChevronLeft className="w-4 h-4 mr-1" /> Prev
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="border-[#23262F] text-[#F1F1F3] hover:bg-[#1A1D25] bg-transparent disabled:opacity-50"
               >
-                Next <ChevronRight className="w-3.5 h-3.5" />
+                Next <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
           </div>
         </div>
       </main>
 
-      {/* Compose Modal */}
       <ComposeModal
         isOpen={isComposeOpen}
         onClose={() => setIsComposeOpen(false)}

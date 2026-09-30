@@ -4,25 +4,41 @@
 
 @layer base {
   body {
-    @apply bg-[#3B7597] text-slate-100 min-h-screen font-sans;
+    @apply bg-background text-text-primary antialiased;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+
+  ::selection {
+    @apply bg-accent/30 text-white;
   }
 }
 
-/* Custom scrollbars */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #3B7597;
+  @apply bg-background;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #232E42;
-  border-radius: 9999px;
+  @apply bg-border rounded-full hover:bg-border-hover transition-colors;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #8B1E2D;
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

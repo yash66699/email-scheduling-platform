@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCsvParser } from '../../hooks/useCsvParser';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../ui/Button';
@@ -10,10 +10,8 @@ import {
   Upload,
   FileText,
   Clock,
-  Zap,
   Users,
   CheckCircle2,
-  AlertCircle,
   Sparkles,
 } from 'lucide-react';
 
@@ -30,7 +28,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onS
 
   const [selectedSenderId, setSelectedSenderId] = useState<string>('');
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (senders.length === 0) {
       if (selectedSenderId) setSelectedSenderId('');
       return;
@@ -149,162 +147,166 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onS
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-[#151D2A] border border-[#232E42] rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto">
+      <div className="bg-[#14161C] border border-[#23262F] rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-8">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#232E42] bg-[#0B0F17]/50">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#8B1E2D]/20 text-[#F4D35E] flex items-center justify-center border border-[#8B1E2D]/30">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-white leading-tight">Compose & Schedule Sequence</h2>
-              <p className="text-xs text-slate-400">Configure BullMQ delayed queueing and rate limits</p>
-            </div>
-          </div>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#23262F]">
+          <h2 className="text-xl font-semibold text-[#F1F1F3]">New Campaign</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+            className="text-[#8B8D97] hover:text-[#F1F1F3] p-1.5 rounded-lg hover:bg-[#1A1D25] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Form Content */}
-        <form onSubmit={handleScheduleSubmit} className="p-6 space-y-5 text-xs">
-          {/* Sender Selection */}
-          <div className="space-y-2">
-            <label className="block font-medium text-slate-300">
-              Sender Account
-            </label>
+        <form onSubmit={handleScheduleSubmit} className="p-6 space-y-8">
+          
+          {/* SECTION 1 - FROM */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-[#F1F1F3]">From</label>
             {senders.length === 0 ? (
-              <div className="p-3 bg-[#151D2A] border border-[#232E42] rounded-xl text-slate-400">
+              <div className="p-4 bg-[#1A1D25] border border-[#23262F] rounded-lg text-sm text-[#8B8D97]">
                 No active senders found. A default sender will be used or created automatically.
               </div>
             ) : (
-              <select
-                value={selectedSenderId}
-                onChange={(e) => setSelectedSenderId(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#0B0F17] border border-[#232E42] rounded-xl text-slate-200 focus:outline-none focus:border-[#8B1E2D] focus:ring-1 focus:ring-[#8B1E2D]"
-                required
-              >
-                <option value="" disabled>Select a sender...</option>
-                {senders.map((sender) => (
-                  <option key={sender.id} value={sender.id}>
-                    {sender.displayName} ({sender.email})
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={selectedSenderId}
+                  onChange={(e) => setSelectedSenderId(e.target.value)}
+                  className="w-full appearance-none px-4 py-3 bg-[#1A1D25] border border-[#23262F] rounded-lg text-[#F1F1F3] text-sm focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/30 transition-all cursor-pointer"
+                  required
+                >
+                  <option value="" disabled>Select a sender...</option>
+                  {senders.map((sender) => (
+                    <option key={sender.id} value={sender.id}>
+                      {sender.displayName} ({sender.email})
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[#8B8D97]">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                  </svg>
+                </div>
+              </div>
             )}
           </div>
 
-          {/* File Lead Upload Section */}
-          <div className="space-y-2">
-            <label className="block font-medium text-slate-300">
-              1. Lead Recipients (CSV / Text Upload or Manual List)
-            </label>
+          {/* SECTION 2 - RECIPIENTS */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-[#F1F1F3]">Recipients</label>
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-[#8B8D97] flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5" />
+                  Detected: <strong className="text-[#F1F1F3]">{detectedCount}</strong>
+                </span>
+                {detectedCount > 0 && (
+                  <span className="text-[#22C55E] flex items-center gap-1 font-medium ml-2">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Valid
+                  </span>
+                )}
+              </div>
+            </div>
 
             {csvResult.fileName ? (
-              <div className="flex items-center justify-between p-3 bg-[#8B1E2D]/10 border border-[#8B1E2D]/30 rounded-xl">
-                <div className="flex items-center gap-2.5">
-                  <FileText className="w-5 h-5 text-[#E63946]" />
+              <div className="flex items-center justify-between p-4 bg-[#1A1D25] border border-[#23262F] rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-[#14161C] rounded-md border border-[#23262F]">
+                    <FileText className="w-5 h-5 text-[#6366F1]" />
+                  </div>
                   <div>
-                    <p className="font-medium text-slate-200">{csvResult.fileName}</p>
-                    <p className="text-[11px] text-[#F4D35E]">
-                      Detected <strong className="text-white">{csvResult.totalDetected}</strong> valid email addresses
-                      {csvResult.duplicateCount > 0 && ` (${csvResult.duplicateCount} duplicates removed)`}
+                    <p className="font-medium text-sm text-[#F1F1F3]">{csvResult.fileName}</p>
+                    <p className="text-xs text-[#8B8D97] mt-0.5">
+                      {csvResult.totalDetected} total • {csvResult.duplicateCount} duplicates removed
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={clearCsv}
-                  className="text-xs text-slate-400 hover:text-rose-400 px-2 py-1 bg-slate-900 rounded border border-slate-800"
+                  className="text-sm font-medium text-[#EF4444] hover:text-[#EF4444]/80 px-3 py-1.5 rounded-md hover:bg-[#EF4444]/10 transition-colors"
                 >
-                  Remove CSV
+                  Remove
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="flex flex-col items-center justify-center p-4 bg-slate-900/60 border border-dashed border-slate-700 hover:border-[#8B1E2D]/50 rounded-xl cursor-pointer transition-colors group">
-                  <Upload className="w-5 h-5 text-slate-400 group-hover:text-[#F4D35E] mb-1" />
-                  <span className="font-medium text-slate-300 group-hover:text-white">Upload CSV / Text File</span>
-                  <span className="text-[10px] text-slate-500">Auto-detects emails</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="flex flex-col items-center justify-center p-6 bg-[#1A1D25] border-2 border-dashed border-[#23262F] hover:border-[#6366F1] rounded-lg cursor-pointer transition-colors group">
+                  <Upload className="w-6 h-6 text-[#5A5C66] group-hover:text-[#6366F1] mb-2 transition-colors" />
+                  <span className="text-sm font-medium text-[#F1F1F3]">Upload CSV</span>
+                  <span className="text-xs text-[#8B8D97] mt-1">Auto-detects email columns</span>
                   <input type="file" accept=".csv,.txt" onChange={handleFileUpload} className="hidden" />
                 </label>
 
                 <textarea
                   value={rawRecipientsText}
                   onChange={(e) => setRawRecipientsText(e.target.value)}
-                  placeholder="Or paste email addresses separated by commas or line breaks..."
-                  rows={3}
-                  className="w-full p-3 bg-[#0B0F17] border border-[#232E42] rounded-xl text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#8B1E2D] focus:ring-1 focus:ring-[#8B1E2D] resize-none font-mono"
+                  placeholder="Or paste emails here..."
+                  rows={4}
+                  className="w-full p-4 bg-[#1A1D25] border border-[#23262F] rounded-lg text-[#F1F1F3] text-sm placeholder:text-[#5A5C66] focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/30 resize-none transition-all"
                 />
               </div>
             )}
-
-            {/* Detected Count Badge */}
-            <div className="flex items-center justify-between px-1 text-[11px]">
-              <span className="text-slate-400 flex items-center gap-1">
-                <Users className="w-3.5 h-3.5 text-[#8B1E2D]" />
-                Detected Recipients: <strong className="text-[#F4D35E] font-bold">{detectedCount}</strong>
-              </span>
-              {detectedCount > 0 && (
-                <span className="text-[#66BB6A] flex items-center gap-1 font-medium">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Valid & Cleaned
-                </span>
-              )}
-            </div>
           </div>
 
-          {/* Subject & Body */}
-          <div className="space-y-3">
+          {/* SECTION 3 - CONTENT */}
+          <div className="space-y-4">
             <div>
-              <label className="block font-medium text-slate-300 mb-1">2. Subject Line</label>
+              <label className="block text-sm font-medium text-[#F1F1F3] mb-2">Subject</label>
               <input
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="e.g. Scaling outreach throughput with automated deliverability..."
-                className="w-full px-3.5 py-2.5 bg-[#0B0F17] border border-[#232E42] rounded-xl text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#8B1E2D] focus:ring-1 focus:ring-[#8B1E2D]"
+                placeholder="Enter subject line..."
+                className="w-full px-4 py-3 bg-[#1A1D25] border border-[#23262F] rounded-lg text-[#F1F1F3] text-sm placeholder:text-[#5A5C66] focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/30 transition-all"
                 required
               />
             </div>
 
             <div>
-              <label className="block font-medium text-slate-300 mb-1">3. Email Message Body</label>
+              <label className="block text-sm font-medium text-[#F1F1F3] mb-2">Message</label>
               <textarea
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                placeholder="Hi {{Name}},\n\nI noticed your team is looking for a robust cold email infrastructure..."
-                rows={4}
-                className="w-full p-3.5 bg-[#0B0F17] border border-[#232E42] rounded-xl text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#8B1E2D] focus:ring-1 focus:ring-[#8B1E2D] resize-none"
+                placeholder="Type your message here..."
+                rows={8}
+                className="w-full p-4 bg-[#1A1D25] border border-[#23262F] rounded-lg text-[#F1F1F3] text-sm placeholder:text-[#5A5C66] focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/30 resize-none transition-all"
                 required
               />
             </div>
           </div>
 
-          {/* Scheduling Controls & Throttling Parameters */}
-          <div className="p-4 bg-[#0B0F17] border border-[#232E42] rounded-xl space-y-4">
-            <h4 className="font-semibold text-slate-200 flex items-center gap-1.5 border-b border-[#232E42] pb-2">
-              <Clock className="w-4 h-4 text-[#F4D35E]" />
-              4. Execution Schedule & Rate Limits
-            </h4>
+          {/* SECTION 4 - DELIVERY CONTROLS */}
+          <div className="bg-[#1A1D25] border border-[#23262F] rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#23262F] flex items-center justify-between bg-[#14161C]/50">
+              <h4 className="text-sm font-medium text-[#F1F1F3] flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#8B8D97]" />
+                Delivery Settings
+              </h4>
+              {detectedCount > 0 && (
+                <span className="text-xs text-[#8B8D97]">
+                  Est. finish: <strong className="text-[#F1F1F3] font-medium">{calculateEstimatedCompletion()}</strong>
+                </span>
+              )}
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-5">
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 mb-1">Start Time</label>
+                <label className="block text-xs font-medium text-[#8B8D97] mb-1.5">Start Time</label>
                 <input
                   type="datetime-local"
                   value={scheduledAtDate}
                   onChange={(e) => setScheduledAtDate(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-[#151D2A] border border-[#232E42] rounded-lg text-slate-200 text-xs focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-[#14161C] border border-[#23262F] rounded-lg text-[#F1F1F3] text-sm focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/30 transition-all"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-medium text-[#8B8D97] mb-1.5">
                   Delay Between Sends (sec)
                 </label>
                 <input
@@ -313,42 +315,35 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onS
                   max={60}
                   value={minDelaySeconds}
                   onChange={(e) => setMinDelaySeconds(Number(e.target.value))}
-                  className="w-full px-2.5 py-1.5 bg-[#151D2A] border border-[#232E42] rounded-lg text-slate-200 text-xs focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-[#14161C] border border-[#23262F] rounded-lg text-[#F1F1F3] text-sm focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/30 transition-all"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 mb-1">Hourly Sender Limit</label>
+                <label className="block text-xs font-medium text-[#8B8D97] mb-1.5">Hourly Limit</label>
                 <input
                   type="number"
                   min={1}
                   max={1000}
                   value={hourlyLimit}
                   onChange={(e) => setHourlyLimit(Number(e.target.value))}
-                  className="w-full px-2.5 py-1.5 bg-[#151D2A] border border-[#232E42] rounded-lg text-slate-200 text-xs focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-[#14161C] border border-[#23262F] rounded-lg text-[#F1F1F3] text-sm focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/30 transition-all"
                   required
                 />
               </div>
             </div>
-
-            {/* Estimated Completion Time Banner */}
-            {detectedCount > 0 && (
-              <div className="flex items-center justify-between text-[11px] text-slate-400 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
-                <span className="flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  Estimated Completion:
-                </span>
-                <span className="font-mono font-semibold text-slate-200">
-                  {calculateEstimatedCompletion()}
-                </span>
-              </div>
-            )}
           </div>
 
-          {/* Modal Actions */}
+          {/* FOOTER */}
           <div className="flex items-center justify-end gap-3 pt-2">
-            <Button variant="outline" type="button" onClick={onClose} disabled={submitting}>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={onClose}
+              disabled={submitting}
+              className="bg-transparent border-[#23262F] text-[#F1F1F3] hover:bg-[#1A1D25]"
+            >
               Cancel
             </Button>
             <Button
@@ -356,8 +351,9 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onS
               type="submit"
               loading={submitting}
               icon={<Sparkles className="w-4 h-4" />}
+              className="bg-[#6366F1] hover:bg-[#818CF8] text-white border-none shadow-sm shadow-[#6366F1]/20"
             >
-              Schedule {detectedCount > 0 ? `${detectedCount} Emails` : 'Sequence'}
+              Schedule {detectedCount > 0 ? `${detectedCount} Emails` : ''}
             </Button>
           </div>
         </form>

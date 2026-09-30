@@ -1,111 +1,94 @@
 import React from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../ui/Button';
-import { Plus, LogOut, Activity, Hash, CheckCircle, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Send, Activity, MessageSquare, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   onOpenCompose: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenCompose }) => {
+export function Header({ onOpenCompose }: HeaderProps) {
   const { user, logout } = useAuth();
 
   return (
-    <header className="sticky top-0 z-30 bg-[#3B7597]/90 backdrop-blur-md border-b border-[#232E42] px-6 py-3.5 flex items-center justify-between">
-      {/* Brand Logo & Name */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#8B1E2D] to-[#E63946] flex items-center justify-center shadow-md shadow-[#8B1E2D]/20 border border-[#F4D35E]/30">
-            <span className="font-bold text-white text-lg tracking-wider">R</span>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-white text-base tracking-tight font-sans">ReachInbox</span>
-              <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-[#8B1E2D]/10 text-[#F4D35E] border border-[#8B1E2D]/20">
-                Scheduler
-              </span>
-            </div>
-            <p className="text-xs text-slate-400">Enterprise Cold Outreach Queue</p>
-          </div>
+    <header className="sticky top-0 z-40 h-[56px] bg-[#0C0E12]/95 backdrop-blur border-b border-[#23262F] px-4 flex items-center justify-between">
+      {/* Left Side */}
+      <div className="flex items-center space-x-4">
+        {/* Brand */}
+        <div className="flex items-center space-x-2">
+          <Send className="w-5 h-5 text-[#6366F1]" />
+          <span className="font-semibold text-[#F1F1F3] text-sm hidden sm:block">OutBox</span>
         </div>
 
-        <div className="h-5 w-px bg-slate-800 hidden sm:block" />
+        <div className="w-px h-5 bg-[#23262F] hidden sm:block"></div>
 
-        {/* Live Queue Admin Dashboard Link */}
+        {/* BullMQ Dashboard */}
         <a
           href="/admin/queues"
           target="_blank"
           rel="noopener noreferrer"
-          className="hidden sm:inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-[#F4D35E] transition-colors bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-800 hover:border-[#457B9D]/30"
-          title="Open BullMQ Live Dashboard"
+          className="hidden sm:flex items-center space-x-1.5 px-2 py-1 rounded-md hover:bg-[#14161C] text-[#8B8D97] hover:text-[#F1F1F3] transition-colors"
         >
-          <Activity className="w-3.5 h-3.5 text-[#457B9D] animate-pulse" />
-          <span>BullMQ Dashboard</span>
+          <div className="relative flex items-center justify-center">
+            <Activity className="w-4 h-4 text-[#22C55E]" />
+            <div className="absolute w-2 h-2 bg-[#22C55E] rounded-full animate-ping opacity-75"></div>
+          </div>
+          <span className="text-xs font-medium">Queues</span>
         </a>
       </div>
 
-      {/* User Info & Actions */}
-      <div className="flex items-center gap-3">
-        {/* Slack Connection Status Badge */}
-        {user && (
-          <a
-            href="/settings"
-            className={`hidden md:inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-all ${user.slackConnected
-                ? 'bg-[#66BB6A]/10 text-[#66BB6A] border-[#66BB6A]/20 hover:border-[#66BB6A]/40'
-                : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-white'
-              }`}
-            title={user.slackConnected ? 'Slack Rate Limit Alerts Connected' : 'Connect Slack for Rate Limit Alerts'}
-          >
-            <Hash className="w-3.5 h-3.5" />
-            <span>{user.slackConnected ? 'Slack Connected' : 'Connect Slack'}</span>
-            {user.slackConnected ? (
-              <CheckCircle className="w-3 h-3 text-[#66BB6A]" />
-            ) : (
-              <AlertCircle className="w-3 h-3 text-amber-400" />
-            )}
-          </a>
-        )}
+      {/* Right Side */}
+      <div className="flex items-center space-x-3">
+        {/* Slack Status Badge */}
+        <Link
+          to="/settings"
+          className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-full border border-[#23262F] bg-[#14161C] hover:border-[#6366F1]/50 transition-colors"
+        >
+          <MessageSquare className="w-3.5 h-3.5 text-[#8B8D97]" />
+          <span className="text-xs font-medium text-[#8B8D97]">Slack Connected</span>
+        </Link>
 
-        {/* Compose CTA */}
-        <Button variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={onOpenCompose}>
-          Compose Email
+        {/* Compose Button */}
+        <Button
+          onClick={onOpenCompose}
+          className="bg-[#6366F1] hover:bg-[#4F46E5] text-white h-8 px-3 text-sm font-medium"
+        >
+          <Send className="w-3.5 h-3.5 sm:mr-1.5" />
+          <span className="hidden sm:inline">Compose</span>
         </Button>
 
-        <div className="h-6 w-px bg-slate-800" />
+        <div className="w-px h-5 bg-[#23262F]"></div>
 
-        {/* User Profile */}
+        {/* User Area */}
         {user && (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2.5">
-              {user.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={user.name}
-                  className="w-8 h-8 rounded-full border border-slate-700 object-cover"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-indigo-400">
-                  {user.name.charAt(0)}
-                </div>
-              )}
-              <div className="hidden sm:block text-left">
-                <p className="text-xs font-medium text-slate-200 leading-tight">{user.name}</p>
-                <p className="text-[11px] text-slate-400 leading-tight">{user.email}</p>
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-full bg-[#14161C] border border-[#23262F] flex items-center justify-center overflow-hidden shrink-0">
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xs font-medium text-[#6366F1]">
+                    {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div className="hidden sm:flex flex-col">
+                <span className="text-xs font-medium text-[#F1F1F3] leading-none">{user.name}</span>
+                <span className="text-[10px] text-[#8B8D97] mt-1 leading-none">{user.email}</span>
               </div>
             </div>
 
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={logout}
-              className="text-slate-400 hover:text-rose-400"
+              className="p-1.5 text-[#8B8D97] hover:text-[#F1F1F3] hover:bg-[#14161C] rounded-md transition-colors"
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
-            </Button>
+            </button>
           </div>
         )}
       </div>
     </header>
   );
-};
+}
