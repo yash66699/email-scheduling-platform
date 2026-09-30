@@ -13,7 +13,7 @@ export const SettingsPage: React.FC = () => {
 
   const handleDisconnectSlack = async () => {
     try {
-      await api.post('/slack/disconnect');
+      await api.post('/api/slack/disconnect');
       toast.success('Slack disconnected successfully');
       await refetchUser();
     } catch (error) {
@@ -85,7 +85,7 @@ export const SettingsPage: React.FC = () => {
                       </Button>
                     ) : (
                       <a 
-                        href={`${import.meta.env.VITE_API_BASE_URL || '/api'}/slack/connect`}
+                        href={`${import.meta.env.VITE_API_BASE_URL || ''}/api/slack/connect`}
                         className="inline-flex items-center justify-center h-10 px-4 rounded-lg bg-[#6366F1] hover:bg-[#4F46E5] text-white font-medium text-sm transition-colors"
                       >
                         Connect Slack

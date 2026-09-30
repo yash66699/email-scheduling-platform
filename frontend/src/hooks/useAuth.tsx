@@ -19,7 +19,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUser = async () => {
     try {
-      const res = await api.get('/auth/me');
+      const res = await api.get('/api/auth/me');
       setUser(res.data.user);
     } catch (error) {
       setUser(null);
@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginDemo = async () => {
     setLoading(true);
     try {
-      const res = await api.post('/auth/demo');
+      const res = await api.post('/api/auth/demo');
       setUser(res.data.user);
       window.location.href = '/dashboard';
     } finally {
@@ -44,14 +44,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginGoogle = () => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
-    window.location.href = `${baseUrl}/auth/google`;
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    window.location.href = `${baseUrl}/api/auth/google`;
   };
 
   const logout = async () => {
     setLoading(true);
     try {
-      await api.post('/auth/logout');
+      await api.post('/api/auth/logout');
       setUser(null);
       window.location.href = '/login';
     } finally {

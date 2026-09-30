@@ -128,7 +128,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onS
         minDelayMsBetweenSend: Number(minDelaySeconds) * 1000,
       };
 
-      const res = await api.post('/emails/schedule', payload);
+      const res = await api.post('/api/emails/schedule', payload);
 
       toast.success(
         `Successfully scheduled ${res.data.count} emails! First send queued for ${new Date(

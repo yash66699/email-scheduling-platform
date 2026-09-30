@@ -41,7 +41,7 @@ export const DashboardPage: React.FC = () => {
   } = useQuery<PaginatedResponse<Email>>({
     queryKey: ['scheduled-emails', page],
     queryFn: async () => {
-      const res = await api.get(`/emails/scheduled?page=${page}&limit=10`);
+      const res = await api.get(`/api/emails/scheduled?page=${page}&limit=10`);
       return res.data;
     },
     refetchInterval: 3000,
@@ -55,7 +55,7 @@ export const DashboardPage: React.FC = () => {
   } = useQuery<PaginatedResponse<Email>>({
     queryKey: ['sent-emails', page],
     queryFn: async () => {
-      const res = await api.get(`/emails/sent?page=${page}&limit=10`);
+      const res = await api.get(`/api/emails/sent?page=${page}&limit=10`);
       return res.data;
     },
     refetchInterval: 3000,
@@ -66,7 +66,7 @@ export const DashboardPage: React.FC = () => {
     queryKey: ['search-emails', searchQuery, page],
     queryFn: async () => {
       if (!searchQuery.trim()) return null as any;
-      const res = await api.get(`/emails/search?q=${encodeURIComponent(searchQuery)}&page=${page}&limit=10`);
+      const res = await api.get(`/api/emails/search?q=${encodeURIComponent(searchQuery)}&page=${page}&limit=10`);
       return res.data;
     },
     enabled: searchQuery.trim().length > 0,
