@@ -52,15 +52,14 @@ export class AuthController {
   public static async googleCallback(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const code = (req.query.code as string) || (req.body.code as string);
-      const idToken = (req.body.idToken as string) || (req.query.id_token as string);
-      const credential = idToken || code;
 
-      if (!credential) {
-        res.status(400).json({ error: 'Missing OAuth credential or code' });
+      if (!code) {
+        res.status(400).json({ error: 'Missing OAuth authorization code' });
         return;
       }
 
-      const user = await AuthService.verifyGoogleTokenAndGetUser(credential);
+      const redirectUri = config.googleCallbackUrl;
+      const user = await AuthService.exchangeGoogleCodeAndGetUser(code, redirectUri);
       const token = AuthService.generateJwtToken(user.id, user.email);
 
       res.cookie('token', token, {

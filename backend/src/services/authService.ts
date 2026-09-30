@@ -13,41 +13,51 @@ export interface JwtPayload {
 
 export class AuthService {
   /**
-   * Verifies Google ID Token or Access Token and upserts user in database.
+   * Exchanges Google OAuth authorization code for tokens and upserts user in database.
    */
-  public static async verifyGoogleTokenAndGetUser(credentialToken: string): Promise<any> {
+  public static async exchangeGoogleCodeAndGetUser(code: string, redirectUri: string): Promise<any> {
     let googleId: string;
     let email: string;
     let name: string;
     let avatarUrl: string | undefined;
 
     try {
-      const ticket = await googleClient.verifyIdToken({
-        idToken: credentialToken,
-        audience: config.googleClientId,
-      });
-      const payload = ticket.getPayload();
-      if (!payload || !payload.email) {
-        throw new Error('Invalid Google ID token payload');
+      // Google requires the exact redirect_uri used during the authorization request
+      const client = new OAuth2Client(config.googleClientId, config.googleClientSecret, redirectUri);
+      const { tokens } = await client.getToken(code);
+
+      if (tokens.id_token) {
+        const ticket = await client.verifyIdToken({
+          idToken: tokens.id_token,
+          audience: config.googleClientId,
+        });
+        const payload = ticket.getPayload();
+        if (!payload || !payload.email) {
+          throw new Error('Invalid Google ID token payload');
+        }
+        googleId = payload.sub;
+        email = payload.email;
+        name = payload.name || payload.email.split('@')[0];
+        avatarUrl = payload.picture;
+      } else if (tokens.access_token) {
+        // Fallback: verify via Google userinfo endpoint
+        const res = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+          headers: { Authorization: `Bearer ${tokens.access_token}` },
+        });
+        if (!res.ok) {
+          throw new Error('Failed to verify Google access token with userinfo endpoint');
+        }
+        const data = (await res.json()) as any;
+        googleId = data.sub;
+        email = data.email;
+        name = data.name || email.split('@')[0];
+        avatarUrl = data.picture;
+      } else {
+        throw new Error('No identity tokens returned from Google exchange');
       }
-      googleId = payload.sub;
-      email = payload.email;
-      name = payload.name || payload.email.split('@')[0];
-      avatarUrl = payload.picture;
     } catch (err) {
-      logger.warn('Google ID Token verification failed, attempting userinfo endpoint fallback...', err);
-      // Fallback: verify via Google userinfo endpoint if user provided an access token
-      const res = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
-        headers: { Authorization: `Bearer ${credentialToken}` },
-      });
-      if (!res.ok) {
-        throw new Error('Failed to verify Google credential with Google servers');
-      }
-      const data = (await res.json()) as any;
-      googleId = data.sub;
-      email = data.email;
-      name = data.name || email.split('@')[0];
-      avatarUrl = data.picture;
+      logger.error('Google OAuth token exchange or verification failed');
+      throw new Error('OAuth Token Exchange Failed');
     }
 
     const user = await prisma.user.upsert({
