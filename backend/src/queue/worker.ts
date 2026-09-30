@@ -58,7 +58,80 @@ export function createEmailWorker(): Worker<EmailJobPayload> {
       const maxHourlyLimit = sender.maxEmailsPerHour || config.defaultHourlyLimit;
       const minDelayMs = sender.minDelayMsBetweenSend || config.defaultMinDelayMs;
 
-      // 3. Atomic Redis Sliding Hour Window Rate-Limit Check
+      // 3. Reserve/check inter-email slot (Bug 1 & Bug 2 Fix)
+      const reservedAtMarker = job.data.interEmailReservedAt;
+
+      if (reservedAtMarker !== undefined) {
+        if (reservedAtMarker > Date.now()) {
+          // Existing reservation is not due yet.
+          // Do NOT reserve another slot.
+          const nextExecutionDate = new Date(reservedAtMarker);
+
+          await prisma.email.update({
+            where: { id: emailId },
+            data: {
+              status: EmailStatus.QUEUED,
+              scheduledAt: nextExecutionDate,
+              updatedAt: new Date(),
+            },
+          });
+
+          if (token) {
+            await job.moveToDelayed(reservedAtMarker, token);
+          }
+
+          return {
+            status: 'RESCHEDULED_INTER_EMAIL_DELAY',
+            rescheduledFor: nextExecutionDate.toISOString(),
+          };
+        }
+
+        // Existing reservation is now due.
+        // Consume the reservation and continue.
+        await job.updateData({
+          ...job.data,
+          interEmailReservedAt: undefined,
+        });
+      } else {
+        // No reservation exists.
+        const reservation = await RateLimiterService.reserveInterEmailSlot(
+          senderId,
+          minDelayMs
+        );
+
+        if (!reservation.allowedNow) {
+          logger.debug(
+            `Sender ${sender.email} inter-email delay hit. Rescheduling job ${job.id} by ${reservation.delayMs}ms`
+          );
+
+          const nextExecutionDate = new Date(reservation.reservedAt);
+
+          await prisma.email.update({
+            where: { id: emailId },
+            data: {
+              status: EmailStatus.QUEUED,
+              scheduledAt: nextExecutionDate,
+              updatedAt: new Date(),
+            },
+          });
+
+          await job.updateData({
+            ...job.data,
+            interEmailReservedAt: reservation.reservedAt,
+          });
+
+          if (token) {
+            await job.moveToDelayed(reservation.reservedAt, token);
+          }
+
+          return {
+            status: 'RESCHEDULED_INTER_EMAIL_DELAY',
+            rescheduledFor: nextExecutionDate.toISOString(),
+          };
+        }
+      }
+
+      // 4. Atomic Redis Sliding Hour Window Rate-Limit Check
       const rateCheck = await RateLimiterService.checkAndIncrementRateLimit(
         senderId,
         maxHourlyLimit
@@ -71,7 +144,6 @@ export function createEmailWorker(): Worker<EmailJobPayload> {
 
         const nextWindowDate = new Date(Date.now() + rateCheck.msUntilNextHour);
 
-        // Update DB status to RATE_LIMITED
         await prisma.email.update({
           where: { id: emailId },
           data: {
@@ -81,7 +153,6 @@ export function createEmailWorker(): Worker<EmailJobPayload> {
           },
         });
 
-        // Trigger Slack Notification (deduplicated per sender per hour window)
         const shouldNotify = await RateLimiterService.shouldNotifySlack(senderId);
         if (shouldNotify) {
           SlackService.sendRateLimitNotification(
@@ -92,7 +163,6 @@ export function createEmailWorker(): Worker<EmailJobPayload> {
           ).catch((err) => logger.error('Background Slack notify error:', err));
         }
 
-        // Reschedule job to next window in BullMQ
         if (token) {
           await job.moveToDelayed(Date.now() + rateCheck.msUntilNextHour, token);
         }
@@ -102,9 +172,6 @@ export function createEmailWorker(): Worker<EmailJobPayload> {
           rescheduledFor: nextWindowDate.toISOString(),
         };
       }
-
-      // 4. Enforce Inter-Email Minimum Spacing Throttling
-      await RateLimiterService.enforceInterEmailDelay(senderId, minDelayMs);
 
       // 5. Execute SMTP Send via Ethereal Mail
       try {

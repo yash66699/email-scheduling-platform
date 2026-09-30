@@ -13,6 +13,7 @@ export interface EmailJobPayload {
   body: string;
   scheduledAt: string; // ISO string
   idempotencyKey: string;
+  interEmailReservedAt?: number;
 }
 
 export const emailQueue = new Queue<EmailJobPayload>(EMAIL_QUEUE_NAME, {
