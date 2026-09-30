@@ -1,4 +1,4 @@
-import { Worker, Job } from 'bullmq';
+import { Worker, Job, DelayedError } from 'bullmq';
 import { EMAIL_QUEUE_NAME, EmailJobPayload } from './emailQueue';
 import { redisConnectionOptions } from '../config/redis';
 import { prisma } from '../config/db';
@@ -78,6 +78,7 @@ export function createEmailWorker(): Worker<EmailJobPayload> {
 
           if (token) {
             await job.moveToDelayed(reservedAtMarker, token);
+            throw new DelayedError();
           }
 
           return {
@@ -122,6 +123,7 @@ export function createEmailWorker(): Worker<EmailJobPayload> {
 
           if (token) {
             await job.moveToDelayed(reservation.reservedAt, token);
+            throw new DelayedError();
           }
 
           return {
@@ -165,6 +167,7 @@ export function createEmailWorker(): Worker<EmailJobPayload> {
 
         if (token) {
           await job.moveToDelayed(Date.now() + rateCheck.msUntilNextHour, token);
+          throw new DelayedError();
         }
 
         return {

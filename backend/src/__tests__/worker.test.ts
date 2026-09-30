@@ -18,6 +18,12 @@ vi.mock('bullmq', () => ({
     addBulk: vi.fn(),
     getJob: vi.fn(),
   })),
+  DelayedError: class DelayedError extends Error {
+    constructor() {
+      super('DelayedError');
+      this.name = 'DelayedError';
+    }
+  },
 }));
 
 vi.mock('../services/rateLimiterService', () => ({
@@ -130,7 +136,7 @@ describe('Worker Throttling Flow', () => {
       reservedAt: Date.now() + 2000,
     });
 
-    const result = await processor(job, token);
+    await expect(processor(job, token)).rejects.toThrowError(bullmq.DelayedError);
 
     expect(RateLimiterService.reserveInterEmailSlot).toHaveBeenCalled();
     expect(RateLimiterService.checkAndIncrementRateLimit).not.toHaveBeenCalled();
@@ -138,7 +144,6 @@ describe('Worker Throttling Flow', () => {
       interEmailReservedAt: expect.any(Number),
     }));
     expect(job.moveToDelayed).toHaveBeenCalled();
-    expect(result.status).toBe('RESCHEDULED_INTER_EMAIL_DELAY');
   });
 
   it('3 & 4. Existing reservation marker in future -> reserveInterEmailSlot NOT called, job delayed', async () => {
@@ -147,12 +152,11 @@ describe('Worker Throttling Flow', () => {
     const job = mockJob({ interEmailReservedAt: futureTime });
     const token = 'token-3';
 
-    const result = await processor(job, token);
+    await expect(processor(job, token)).rejects.toThrowError(bullmq.DelayedError);
 
     expect(RateLimiterService.reserveInterEmailSlot).not.toHaveBeenCalled();
     expect(RateLimiterService.checkAndIncrementRateLimit).not.toHaveBeenCalled();
     expect(job.moveToDelayed).toHaveBeenCalledWith(futureTime, token);
-    expect(result.status).toBe('RESCHEDULED_INTER_EMAIL_DELAY');
   });
 
   it('5. Existing reservation marker due/past -> reserveInterEmailSlot NOT called and hourly check proceeds', async () => {
@@ -189,7 +193,7 @@ describe('Worker Throttling Flow', () => {
       msUntilNextHour: 10000,
     });
 
-    const result = await processor(job, token);
+    await expect(processor(job, token)).rejects.toThrowError(bullmq.DelayedError);
 
     expect(RateLimiterService.reserveInterEmailSlot).not.toHaveBeenCalled();
     expect(RateLimiterService.checkAndIncrementRateLimit).toHaveBeenCalled();
@@ -197,6 +201,5 @@ describe('Worker Throttling Flow', () => {
       interEmailReservedAt: undefined,
     }));
     expect(job.moveToDelayed).toHaveBeenCalled();
-    expect(result.status).toBe('RESCHEDULED_RATE_LIMITED');
   });
 });
