@@ -112,7 +112,6 @@ services:
         fromService:
           type: web
           name: reachinbox-backend-api
-          property: envVar
           envVarKey: ENCRYPTION_SECRET
       - key: GOOGLE_CLIENT_ID
         sync: false
