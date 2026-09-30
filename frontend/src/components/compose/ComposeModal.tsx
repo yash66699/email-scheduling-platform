@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCsvParser } from '../../hooks/useCsvParser';
+import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../ui/Button';
 import { api } from '../../lib/api';
 import { ScheduleEmailPayload } from '../../types';
@@ -24,6 +25,24 @@ interface ComposeModalProps {
 
 export const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { parseFile, clearCsv, result: csvResult, parsing } = useCsvParser();
+  const { user } = useAuth();
+  const senders = user?.senders || [];
+
+  const [selectedSenderId, setSelectedSenderId] = useState<string>('');
+
+  React.useEffect(() => {
+    if (senders.length === 0) {
+      if (selectedSenderId) setSelectedSenderId('');
+      return;
+    }
+
+    // If no sender selected, or the selected sender is no longer in the list
+    const isSelectedValid = senders.some((s) => s.id === selectedSenderId);
+    if (!selectedSenderId || !isSelectedValid) {
+      const defaultSender = senders.find((s) => s.isActive) || senders[0];
+      setSelectedSenderId(defaultSender.id);
+    }
+  }, [senders, selectedSenderId]);
 
   const [rawRecipientsText, setRawRecipientsText] = useState('');
   const [subject, setSubject] = useState('');
@@ -83,6 +102,11 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onS
       return;
     }
 
+    if (senders.length > 0 && !selectedSenderId) {
+      toast.error('Please select a sender.');
+      return;
+    }
+
     if (!subject.trim()) {
       toast.error('Email subject is required.');
       return;
@@ -101,6 +125,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onS
         subject: subject.trim(),
         body: body.trim(),
         scheduledAt: new Date(scheduledAtDate).toISOString(),
+        senderId: selectedSenderId || undefined,
         maxEmailsPerHour: Number(hourlyLimit),
         minDelayMsBetweenSend: Number(minDelaySeconds) * 1000,
       };
@@ -147,6 +172,32 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onS
 
         {/* Modal Form Content */}
         <form onSubmit={handleScheduleSubmit} className="p-6 space-y-5 text-xs">
+          {/* Sender Selection */}
+          <div className="space-y-2">
+            <label className="block font-medium text-slate-300">
+              Sender Account
+            </label>
+            {senders.length === 0 ? (
+              <div className="p-3 bg-[#151D2A] border border-[#232E42] rounded-xl text-slate-400">
+                No active senders found. A default sender will be used or created automatically.
+              </div>
+            ) : (
+              <select
+                value={selectedSenderId}
+                onChange={(e) => setSelectedSenderId(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#0B0F17] border border-[#232E42] rounded-xl text-slate-200 focus:outline-none focus:border-[#8B1E2D] focus:ring-1 focus:ring-[#8B1E2D]"
+                required
+              >
+                <option value="" disabled>Select a sender...</option>
+                {senders.map((sender) => (
+                  <option key={sender.id} value={sender.id}>
+                    {sender.displayName} ({sender.email})
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
           {/* File Lead Upload Section */}
           <div className="space-y-2">
             <label className="block font-medium text-slate-300">
