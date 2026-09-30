@@ -1,107 +1,36 @@
-# ReachInbox - Enterprise Production-Grade Email Job Scheduler & Dashboard
+# OutBox - Outbound Email Infrastructure
 
-This repository contains the complete full-stack implementation for the **ReachInbox Hiring Assignment**. It is a restart-safe, multi-tenant email job scheduler and SaaS monitoring dashboard built with TypeScript, Express.js, BullMQ, Redis, PostgreSQL, Prisma, Elasticsearch, Nodemailer (Ethereal Mail), React, Vite, and Tailwind CSS.
+OutBox is a production-ready, highly concurrent email scheduling platform. Designed as a "Command Center for Outbound Communication," it provides robust guarantees for delayed execution, rate limiting, and exact-time delivery.
 
----
-backend - https://reachinbox-backend-api-v1.onrender.com/
-
-frontend - https://email-scheduling-platform-ai25.vercel.app/
-
-bullboard queue dashboard - https://reachinbox-backend-api-v1.onrender.com/admin/queues
-## ⚡ Absolute Design Guarantees
-
-- **Zero Cron Jobs:** 100% of delayed scheduling relies natively on **BullMQ delayed jobs backed by Redis sorted sets (`ZSET`)**. No `cron`, `node-cron`, `agenda`, or polling loops.
-- **Restart Persistence:** Process crashes do not drop or reset jobs. Jobs due while offline execute immediately upon startup; future jobs execute at their exact scheduled time.
-- **Atomic Rate Limiting:** Enforces hourly rate limits per sender across concurrent worker instances using an **atomic Redis Lua script**. Jobs exceeding limits are rescheduled to the next hourly window (never dropped or failed).
-- **Slack OAuth Alerts:** Triggers automated Slack notifications when a sender's rate limit is hit.
-- **Elasticsearch Search Engine:** Sent and scheduled emails are indexed in Elasticsearch with multi-field full-text search, with an automatic fallback to PostgreSQL `ILIKE`.
-
-## Screenshots
-
-### Login
-
-![ReachInbox Login](frontend/assets/login-page.png)
-
-### Dashboard
-
-![ReachInbox Dashboard](frontend/assets/dashboard.png)
-
-### Processing
-
-![Email Processing](frontend/assets/processing.png)
-
-### BullMQ Dashboard
-
-![BullMQ Dashboard](frontend/assets/bullmq-dashboard.png)
-
-### Compose Email
-
-![Compose Email](frontend/assets/compose-email.png)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?style=for-the-badge&logo=elasticsearch)
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Key Capabilities
 
-### Prerequisites
-- **Node.js**: v18+ or v20 LTS
-- **Docker & Docker Compose**: For local PostgreSQL, Redis, and Elasticsearch containers
-
-### 1. Launch Infrastructure
-Start PostgreSQL (port 5432), Redis (port 6379), and Elasticsearch (port 9200) using Docker Compose:
-```bash
-docker-compose up -d
-```
-
-### 2. Environment Configuration
-Create environment files:
-```bash
-cp .env.example .env
-```
-
-### 3. Install Dependencies & Setup Database
-Run the setup script from root:
-```bash
-# Install backend and frontend dependencies
-npm run setup
-
-# Run PostgreSQL database migrations and seed sample data
-cd backend
-npx prisma migrate dev --name init
-npx prisma db seed
-cd ..
-```
-
-### 4. Run Application Components
-Launch all processes concurrently:
-
-```bash
-# Option A: Run services in separate terminals
-# Terminal 1: API Server
-npm run dev:backend
-
-# Terminal 2: BullMQ Worker Process
-npm run dev:worker
-
-# Terminal 3: React Frontend Dashboard
-npm run dev:frontend
-```
-
-Open your browser at:
-- **Frontend Dashboard:** [http://localhost:3000](http://localhost:3000)
-- **Backend API:** [http://localhost:5000](http://localhost:5000)
-- **Live BullMQ Board:** [http://localhost:5000/admin/queues](http://localhost:5000/admin/queues)
+- **Precision Scheduling without Cron:** Powered by BullMQ and Redis ZSETs for exact-time execution without polling.
+- **Strict Delivery Guarantees:** 100% idempotency via UUID job tracking and Ethereal SMTP message ID reconciliation.
+- **Smart Rate Limiting:** Atomic sliding-window rate limiting via Redis Lua scripts. Jobs exceeding the limit are safely delayed to the next hourly window, never dropped.
+- **Command Center UI:** A premium, dark-mode focused React frontend featuring interactive CSV parsing, multi-sender toggling, and live data polling.
+- **Robust Search:** Full-text search over millions of records using Elasticsearch, with graceful fallback to PostgreSQL.
+- **Enterprise Integrations:** Real OAuth 2.0 flows for both Google (Authentication) and Slack (Real-time alerting for rate limit triggers).
 
 ---
 
-## 📐 Architecture Overview
+## 🏗 Architecture
 
-```
+```text
 +-----------------------------------------------------------------------------------+
 |                                 FRONTEND (React + Vite)                           |
-|  - Real Google OAuth & Instant Demo Login                                        |
+|  - Real Google OAuth & Instant Demo Login                                         |
 |  - Real Slack OAuth Authorization                                                 |
 |  - CSV Lead Parser (Client-side validation & duplicate removal)                   |
-|  - Scheduled & Sent Email Tables (Paginated, Searchable via Elasticsearch)         |
+|  - Scheduled & Sent Email Tables (Paginated, Searchable via Elasticsearch)        |
 +----------------------------------------+------------------------------------------+
                                          | HTTP / REST (JWT Cookie)
                                          v
@@ -109,7 +38,7 @@ Open your browser at:
 |                              BACKEND API (Express.js)                             |
 |  - Auth Controllers (Google ID Token -> HttpOnly Session Cookie)                  |
 |  - Email Scheduling Endpoint (Zod Validation -> DB Tx -> Queue Add)               |
-|  - Slack OAuth Controller (Exchange Auth Code -> AES-256 Encrypted Storage)        |
+|  - Slack OAuth Controller (Exchange Auth Code -> AES-256 Encrypted Storage)       |
 |  - Search API (Routes query to Elasticsearch, degrades gracefully to Postgres)    |
 |  - BullBoard Dashboard Route (/admin/queues - Protected Session)                  |
 +-------------------+--------------------+--------------------+---------------------+
@@ -148,36 +77,79 @@ Open your browser at:
 
 ---
 
-## 🔒 Idempotency & Delivery Guarantees
+## 🛡 Idempotency & Resiliency
 
-1. **Deterministic Job IDs:** BullMQ job ID matches the PostgreSQL Email primary key UUID (`email.id`).
-2. **Atomic DB State Lock:** Worker executes `UPDATE emails SET status = 'PROCESSING' WHERE id = $1 AND status IN ('SCHEDULED', 'QUEUED', 'RATE_LIMITED') RETURNING id`. If 0 rows updated, execution halts.
-3. **Provider Message ID Tracking:** Ethereal SMTP message ID is stored upon send completion. On retries, existing provider IDs prevent duplicate re-sends.
-
----
-
-## 📊 Feature Mapping Matrix
-
-| Feature | Backend Source Code | Frontend Source Code |
-| :--- | :--- | :--- |
-| **No-Cron BullMQ Queue** | `backend/src/queue/emailQueue.ts` | - |
-| **Worker Concurrency & Lifecycle** | `backend/src/queue/worker.ts` | - |
-| **Atomic Redis Rate Limiter** | `backend/src/services/rateLimiterService.ts` | - |
-| **Slack OAuth & Alerts** | `backend/src/services/slackService.ts` | `frontend/src/pages/SettingsPage.tsx` |
-| **Elasticsearch & Search Fallback** | `backend/src/services/elasticsearchService.ts` | `frontend/src/components/dashboard/SearchBar.tsx` |
-| **Google OAuth & JWT Sessions** | `backend/src/services/authService.ts` | `frontend/src/pages/LoginPage.tsx` |
-| **CSV Lead Parser** | - | `frontend/src/hooks/useCsvParser.ts` |
-| **Live Queue Dashboard** | `backend/src/app.ts` (`/admin/queues`) | `frontend/src/components/layout/Header.tsx` |
+1. **Deterministic Job IDs:** Every BullMQ job ID matches the corresponding PostgreSQL Email primary key UUID (`email.id`).
+2. **Atomic DB State Locks:** The worker executes `UPDATE emails SET status = 'PROCESSING' WHERE id = $1 AND status IN ('SCHEDULED', 'QUEUED', 'RATE_LIMITED') RETURNING id`. If 0 rows are updated, execution safely halts, preventing duplicate processing.
+3. **Provider Tracking:** Ethereal SMTP message IDs are stored upon send completion. In the event of a worker crash and retry, existing provider IDs act as a circuit breaker against duplicate dispatches.
+4. **Crash Recovery:** If the backend or worker process crashes, delayed jobs remain persisted in Redis. Upon restart, jobs are picked up precisely where they left off.
 
 ---
 
-## 📽️ Demo & Restart Verification Steps
+## ⚡ Quick Start Guide
 
-1. **Login:** Open `http://localhost:3000` and click **"Instant Demo Account Login"** or **"Sign in with Google OAuth"**.
-2. **Schedule Sequence:** Click **"Compose Email"**, upload a CSV lead list or paste emails, set start time, spacing (2s), and rate limit (e.g. 5/hr). Click **Schedule**.
-3. **Live Queue Monitoring:** Open `http://localhost:5000/admin/queues` to observe delayed and active jobs.
-4. **Server Restart Demonstration:**
-   - Stop the backend process (`Ctrl+C` in `npm run dev:backend`).
-   - Notice Redis retains all delayed jobs in its ZSET.
-   - Restart backend (`npm run dev:backend`). Future scheduled emails complete at their exact scheduled time.
-5. **Slack Rate Limit Notification:** Connect Slack in settings. Schedule emails exceeding hourly limit. Observe the live Slack alert message arriving in your channel.
+### Prerequisites
+- **Node.js**: v18+ or v20 LTS
+- **Docker & Docker Compose**: For local PostgreSQL, Redis, and Elasticsearch containers
+
+### 1. Launch Infrastructure
+Start PostgreSQL (port 5432), Redis (port 6379), and Elasticsearch (port 9200) using Docker Compose:
+```bash
+docker-compose up -d
+```
+
+### 2. Environment Configuration
+Create environment files from the provided templates:
+```bash
+cp .env.example .env
+```
+
+### 3. Install Dependencies & Setup Database
+Run the setup script from the project root:
+```bash
+# Install backend and frontend dependencies
+npm run setup
+
+# Apply database schema
+cd backend
+npx prisma db push
+cd ..
+```
+
+### 4. Run Application Components
+Launch all processes concurrently:
+
+```bash
+# Terminal 1: API Server
+npm run dev:backend
+
+# Terminal 2: BullMQ Worker Process
+npm run dev:worker
+
+# Terminal 3: React Frontend Dashboard
+npm run dev:frontend
+```
+
+Open your browser at:
+- **Frontend Dashboard:** [http://localhost:3000](http://localhost:3000) (or the port specified by Vite)
+- **Backend API:** [http://localhost:5000](http://localhost:5000)
+- **Live BullMQ Board:** [http://localhost:5000/admin/queues](http://localhost:5000/admin/queues)
+
+---
+
+## 🔧 Production Deployment
+
+OutBox includes a pre-configured `render.yaml` Blueprint for 1-click infrastructure deployment on [Render](https://render.com). 
+
+The Blueprint provisions:
+- Render Static Site for the React SPA
+- Render Web Service for the Express API
+- Render Background Worker for BullMQ
+- Managed PostgreSQL and Redis (Key Value) instances
+- Private Elasticsearch Docker deployment on a persistent disk
+
+See the internal Render Blueprint configuration (`render.yaml`) for exact environment requirements.
+
+---
+
+*Designed for high-throughput outbound email delivery.*
