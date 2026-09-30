@@ -44,7 +44,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginGoogle = () => {
-    window.location.href = '/api/auth/google';
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+    window.location.href = `${baseUrl}/auth/google`;
   };
 
   const logout = async () => {
