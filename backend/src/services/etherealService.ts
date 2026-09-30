@@ -66,6 +66,9 @@ export class EtherealService {
       const testAccount = await nodemailer.createTestAccount();
       this.cachedAccount = { user: testAccount.user, pass: testAccount.pass };
       this.cachedTransporter = nodemailer.createTransport({
+        pool: true,
+        maxConnections: 1,
+        maxMessages: 100,
         host: 'smtp.ethereal.email',
         port: 587,
         secure: false,
