@@ -136,8 +136,11 @@ services:
         sync: false
     routes:
       - type: rewrite
+        source: /api/*
+        destination: https://reachinbox-backend-api-skuv.onrender.com/api/*
+      - type: rewrite
         source: /admin/*
-        destination: https://reachinbox-backend-api.onrender.com/admin/*
+        destination: https://reachinbox-backend-api-skuv.onrender.com/admin/*
       - type: rewrite
         source: /*
         destination: /index.html
