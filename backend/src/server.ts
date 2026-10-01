@@ -138,7 +138,7 @@ async function startServer(): Promise<void> {
   // Perform startup reconciliation for restart persistence safety
   await performStartupReconciliation();
 
-  const server = app.listen(config.port, () => {
+  const server = app.listen(config.port, '0.0.0.0', () => {
     logger.info(`================================================================`);
     logger.info(`🚀 ReachInbox API Server running on port ${config.port}`);
     logger.info(`📊 BullBoard Queue Dashboard: http://localhost:${config.port}/admin/queues`);
